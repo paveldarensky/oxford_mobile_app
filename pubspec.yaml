@@ -51,11 +51,29 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    - family: GolosText
+      fonts:
+        - asset: assets/fonts/GolosText-cyrillic-400.ttf
+          weight: 400
+        - asset: assets/fonts/GolosText-cyrillic-500.ttf
+          weight: 500
+        - asset: assets/fonts/GolosText-cyrillic-600.ttf
+          weight: 600
+        - asset: assets/fonts/GolosText-cyrillic-700.ttf
+          weight: 700
+    - family: GolosTextLatin
+      fonts:
+        - asset: assets/fonts/GolosText-latin-400.ttf
+          weight: 400
+        - asset: assets/fonts/GolosText-latin-500.ttf
+          weight: 500
+        - asset: assets/fonts/GolosText-latin-600.ttf
+          weight: 600
+        - asset: assets/fonts/GolosText-latin-700.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

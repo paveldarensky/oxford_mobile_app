@@ -1,30 +1,35 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:oxford/main.dart';
+import 'package:oxford/app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Daily tasks screen matches the launch layout', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(const OxfordApp());
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Задания'), findsWidgets);
+    expect(find.text('Серия: 1 дн.'), findsOneWidget);
+    expect(find.text('рекорд 1'), findsOneWidget);
+    expect(find.text('Тренажёры'), findsOneWidget);
+    expect(find.text('Совет дня'), findsOneWidget);
+    expect(tester.takeException(), isNull);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.tap(find.text('Совет дня'));
+    await tester.pumpAndSettle();
+    expect(find.text('Совет дня'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Стихи'),
+      400,
+      scrollable: find.byType(Scrollable),
+    );
+    expect(find.text('Книги'), findsOneWidget);
+    expect(find.text('Стихи'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
