@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:oxford/models/attention_rules.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 import 'package:oxford/theme/oxford_text.dart';
 import 'package:oxford/widgets/icons/reader_icons.dart';
@@ -29,12 +30,12 @@ class AttentionTrainerScreen extends StatefulWidget {
   const AttentionTrainerScreen({
     super.key,
     this.roundLength = const Duration(seconds: 60),
-    this.stimulusLength = const Duration(milliseconds: 1000),
+    this.rules = const AttentionRules(),
     this.script,
   });
 
   final Duration roundLength;
-  final Duration stimulusLength;
+  final AttentionRules rules;
 
   /// Заданная очередь символов. Нужна, чтобы проверить подсчёт.
   final List<String>? script;
@@ -59,20 +60,20 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
   );
 
   final _random = Random();
+  final List<_Mark> _marks = [];
   _Phase _phase = _Phase.ready;
   int _correct = 0;
   int _wrong = 0;
   int _missed = 0;
   int _seconds = 60;
   int _cursor = 0;
-  String? _symbol;
-  bool _isLetter = false;
-  bool _answered = false;
-  int _symbolId = 0;
+  int _nextId = 0;
 
   Timer? _roundTimer;
   Timer? _clockTimer;
-  Timer? _symbolTimer;
+  Timer? _spawnTimer;
+
+  int get _alive => _marks.where((mark) => !mark.resolved).length;
 
   @override
   void dispose() {
@@ -83,7 +84,7 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
   void _stopTimers() {
     _roundTimer?.cancel();
     _clockTimer?.cancel();
-    _symbolTimer?.cancel();
+    _spawnTimer?.cancel();
   }
 
   void _start() {
@@ -97,10 +98,10 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
           ? 1
           : widget.roundLength.inSeconds;
       _cursor = 0;
-      _symbol = null;
-      _answered = false;
+      _marks.clear();
     });
-    _spawn();
+    _spawnNow();
+    _armSpawn();
     _roundTimer = Timer(widget.roundLength, _finish);
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _phase != _Phase.playing || _seconds <= 1) return;
@@ -108,57 +109,117 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
     });
   }
 
-  void _spawn() {
-    if (!mounted || _phase != _Phase.playing) return;
-    final symbol = _nextSymbol();
-    setState(() {
-      _symbol = symbol;
-      _isLetter = !_digits.contains(symbol);
-      _answered = false;
-      _symbolId += 1;
-    });
-    _symbolTimer?.cancel();
-    _symbolTimer = Timer(widget.stimulusLength, () {
+  void _armSpawn() {
+    _spawnTimer?.cancel();
+    final wait = _alive >= widget.rules.maxOnField
+        ? const Duration(milliseconds: 280)
+        : _nextGap();
+    _spawnTimer = Timer(wait, () {
       if (!mounted || _phase != _Phase.playing) return;
-      if (_isLetter && !_answered) setState(() => _missed += 1);
-      _spawn();
+      if (_alive < widget.rules.maxOnField) _spawnNow();
+      _armSpawn();
     });
   }
 
-  String _nextSymbol() {
-    final script = widget.script;
-    if (script != null && script.isNotEmpty) {
-      final symbol = script[_cursor % script.length];
-      _cursor += 1;
-      return symbol;
-    }
-    final bag = _random.nextDouble() < 0.62 ? _letters : _digits;
-    var symbol = bag[_random.nextInt(bag.length)];
-    if (symbol == _symbol && bag.length > 1) {
-      symbol = bag[_random.nextInt(bag.length)];
-    }
-    return symbol;
+  Duration _nextGap() {
+    final rules = widget.rules;
+    final min = rules.spawnMin.inMilliseconds;
+    final max = rules.spawnMax.inMilliseconds;
+    if (max <= min) return Duration(milliseconds: min);
+    return Duration(milliseconds: min + _random.nextInt(max - min));
   }
 
-  void _respond() {
-    if (_phase != _Phase.playing || _answered || _symbol == null) return;
+  Duration _nextLife() {
+    final rules = widget.rules;
+    final min = rules.minLife.inMilliseconds;
+    final max = rules.maxLife.inMilliseconds;
+    if (max <= min) return Duration(milliseconds: min);
+    return Duration(milliseconds: min + _random.nextInt(max - min));
+  }
+
+  void _spawnNow() {
+    if (!mounted || _phase != _Phase.playing) return;
+    if (_alive >= widget.rules.maxOnField) return;
+    final text = _nextSymbol();
+    if (text == null) return;
+    final spot = _openSpot();
+    final mark = _Mark(
+      id: _nextId++,
+      text: text,
+      isLetter: !_digits.contains(text),
+      x: spot.$1,
+      y: spot.$2,
+      life: _nextLife(),
+    );
+    setState(() => _marks.add(mark));
+  }
+
+  (double, double) _openSpot() {
+    for (var attempt = 0; attempt < 8; attempt++) {
+      final x = _random.nextDouble();
+      final y = _random.nextDouble();
+      final crowded = _marks.any((mark) {
+        if (mark.resolved) return false;
+        final dx = mark.x - x;
+        final dy = mark.y - y;
+        return dx * dx + dy * dy < 0.05;
+      });
+      if (!crowded) return (x, y);
+    }
+    return (_random.nextDouble(), _random.nextDouble());
+  }
+
+  String? _nextSymbol() {
+    final script = widget.script;
+    if (script != null) {
+      if (_cursor >= script.length) return null;
+      return script[_cursor++];
+    }
+    final letters = _random.nextDouble() < widget.rules.letterChance;
+    final bag = letters ? _letters : _digits;
+    return bag[_random.nextInt(bag.length)];
+  }
+
+  void _tapMark(int id) {
+    final mark = _find(id);
+    if (mark == null || mark.resolved || _phase != _Phase.playing) return;
+    mark.resolved = true;
     setState(() {
-      _answered = true;
-      if (_isLetter) {
+      if (mark.isLetter) {
         _correct += 1;
       } else {
         _wrong += 1;
       }
+      _marks.remove(mark);
     });
-    _symbolTimer?.cancel();
-    _symbolTimer = Timer(const Duration(milliseconds: 180), _spawn);
+  }
+
+  void _expire(int id) {
+    final mark = _find(id);
+    if (mark == null || mark.resolved || _phase != _Phase.playing) return;
+    mark.resolved = true;
+    setState(() {
+      if (mark.isLetter) _missed += 1;
+      _marks.remove(mark);
+    });
+  }
+
+  _Mark? _find(int id) {
+    for (final mark in _marks) {
+      if (mark.id == id) return mark;
+    }
+    return null;
   }
 
   void _finish() {
     if (_phase != _Phase.playing) return;
     _phase = _Phase.results;
     _stopTimers();
-    if (_symbol != null && _isLetter && !_answered) _missed += 1;
+    for (final mark in _marks) {
+      if (!mark.resolved && mark.isLetter) _missed += 1;
+      mark.resolved = true;
+    }
+    _marks.clear();
     AttentionScore.add(_correct);
     if (mounted) setState(() {});
   }
@@ -166,7 +227,7 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
   void _again() {
     setState(() {
       _phase = _Phase.ready;
-      _symbol = null;
+      _marks.clear();
     });
   }
 
@@ -193,13 +254,13 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
       _Phase.ready => _ReadyView(onStart: _start),
       _Phase.playing => _PlayView(
         seconds: _seconds,
-        symbol: _symbol,
-        symbolId: _symbolId,
-        isLetter: _isLetter,
+        marks: _marks,
+        rules: widget.rules,
         correct: _correct,
         wrong: _wrong,
         missed: _missed,
-        onTapSymbol: _respond,
+        onTapMark: _tapMark,
+        onExpire: _expire,
       ),
       _Phase.results => _ResultsView(
         correct: _correct,
@@ -286,23 +347,23 @@ class _ReadyView extends StatelessWidget {
 class _PlayView extends StatelessWidget {
   const _PlayView({
     required this.seconds,
-    required this.symbol,
-    required this.symbolId,
-    required this.isLetter,
+    required this.marks,
+    required this.rules,
     required this.correct,
     required this.wrong,
     required this.missed,
-    required this.onTapSymbol,
+    required this.onTapMark,
+    required this.onExpire,
   });
 
   final int seconds;
-  final String? symbol;
-  final int symbolId;
-  final bool isLetter;
+  final List<_Mark> marks;
+  final AttentionRules rules;
   final int correct;
   final int wrong;
   final int missed;
-  final VoidCallback onTapSymbol;
+  final ValueChanged<int> onTapMark;
+  final ValueChanged<int> onExpire;
 
   @override
   Widget build(BuildContext context) {
@@ -313,29 +374,32 @@ class _PlayView extends StatelessWidget {
         const SizedBox(height: 14),
         const _RuleBanner(),
         Expanded(
-          child: Align(
-            alignment: const Alignment(0, -0.35),
-            child: GestureDetector(
-              onTap: onTapSymbol,
-              behavior: HitTestBehavior.opaque,
-              child: SizedBox(
-                width: 160,
-                height: 160,
-                child: Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 160),
-                    child: Text(
-                      symbol ?? '',
-                      key: ValueKey(symbolId),
-                      style: OxfordText.attentionSymbol.copyWith(
-                        color: isLetter
-                            ? OxfordColors.attentionLetter
-                            : OxfordColors.attentionDigit,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const hit = 48.0;
+                final width = max(0.0, constraints.maxWidth - hit);
+                final height = max(0.0, constraints.maxHeight - hit);
+                return Stack(
+                  children: [
+                    for (final mark in marks)
+                      if (!mark.resolved)
+                        Positioned(
+                          left: mark.x * width,
+                          top: mark.y * height,
+                          child: _Glyph(
+                            key: ValueKey(mark.id),
+                            mark: mark,
+                            size: rules.symbolSize,
+                            fade: rules.fade,
+                            onTap: () => onTapMark(mark.id),
+                            onExpire: () => onExpire(mark.id),
+                          ),
+                        ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -344,6 +408,114 @@ class _PlayView extends StatelessWidget {
           child: _ScoreBar(correct: correct, wrong: wrong, missed: missed),
         ),
       ],
+    );
+  }
+}
+
+class _Mark {
+  _Mark({
+    required this.id,
+    required this.text,
+    required this.isLetter,
+    required this.x,
+    required this.y,
+    required this.life,
+  });
+
+  final int id;
+  final String text;
+  final bool isLetter;
+  final double x;
+  final double y;
+  final Duration life;
+  bool resolved = false;
+}
+
+class _Glyph extends StatefulWidget {
+  const _Glyph({
+    super.key,
+    required this.mark,
+    required this.size,
+    required this.fade,
+    required this.onTap,
+    required this.onExpire,
+  });
+
+  final _Mark mark;
+  final double size;
+  final Duration fade;
+  final VoidCallback onTap;
+  final VoidCallback onExpire;
+
+  @override
+  State<_Glyph> createState() => _GlyphState();
+}
+
+class _GlyphState extends State<_Glyph> with SingleTickerProviderStateMixin {
+  late final AnimationController _life;
+  bool _closed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _life = AnimationController(vsync: this, duration: widget.mark.life)
+      ..forward();
+    _life.addStatusListener((status) {
+      if (status == AnimationStatus.completed) _finishLife();
+    });
+  }
+
+  void _finishLife() {
+    if (_closed) return;
+    _closed = true;
+    widget.onExpire();
+  }
+
+  @override
+  void dispose() {
+    _closed = true;
+    _life.dispose();
+    super.dispose();
+  }
+
+  double _opacity(double t) {
+    final lifeMs = widget.mark.life.inMilliseconds;
+    if (lifeMs <= 0) return 0;
+    final fadeIn = (t * lifeMs / 200).clamp(0.0, 1.0);
+    final fadeMs = min(widget.fade.inMilliseconds, lifeMs);
+    final fadeStart = 1 - fadeMs / lifeMs;
+    if (t <= fadeStart || fadeStart >= 1) return fadeIn;
+    final fadeOut = (1 - (t - fadeStart) / (1 - fadeStart)).clamp(0.0, 1.0);
+    return fadeIn * fadeOut;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.mark.isLetter
+        ? OxfordColors.attentionLetter
+        : OxfordColors.attentionDigit;
+    return GestureDetector(
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _life,
+            builder: (context, child) {
+              return Opacity(opacity: _opacity(_life.value), child: child);
+            },
+            child: Text(
+              widget.mark.text,
+              style: OxfordText.attentionSymbol.copyWith(
+                fontSize: widget.size,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

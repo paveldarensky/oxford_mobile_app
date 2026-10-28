@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oxford/app.dart';
+import 'package:oxford/models/attention_rules.dart';
 import 'package:oxford/screens/attention/attention_trainer_screen.dart';
 
 void main() {
@@ -116,12 +117,18 @@ void main() {
     tester,
   ) async {
     AttentionScore.debugClear();
+    const held = AttentionRules(
+      minSpawn: Duration(milliseconds: 120),
+      maxSpawn: Duration(milliseconds: 120),
+      minLife: Duration(seconds: 3),
+      maxLife: Duration(seconds: 3),
+    );
     await tester.pumpWidget(
       const MaterialApp(
         home: AttentionTrainerScreen(
           key: Key('letters'),
-          roundLength: Duration(milliseconds: 350),
-          stimulusLength: Duration(milliseconds: 500),
+          roundLength: Duration(milliseconds: 500),
+          rules: held,
           script: ['Щ', '7'],
         ),
       ),
@@ -131,13 +138,13 @@ void main() {
     await tester.pump();
     expect(find.text('Щ'), findsOneWidget);
 
-    await tester.tap(find.text('Щ'));
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 140));
+    expect(find.text('Щ'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
-    expect(find.text('1'), findsWidgets);
 
+    await tester.tap(find.text('Щ'));
     await tester.tap(find.text('7'));
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Результаты'), findsOneWidget);
     expect(find.text('Верно: 1'), findsOneWidget);
     expect(find.text('Неверно: 1'), findsOneWidget);
@@ -152,14 +159,22 @@ void main() {
       const MaterialApp(
         home: AttentionTrainerScreen(
           key: Key('miss'),
-          roundLength: Duration(milliseconds: 220),
-          stimulusLength: Duration(seconds: 2),
+          roundLength: Duration(milliseconds: 700),
+          rules: AttentionRules(
+            minSpawn: Duration(seconds: 5),
+            maxSpawn: Duration(seconds: 5),
+            minLife: Duration(milliseconds: 120),
+            maxLife: Duration(milliseconds: 120),
+          ),
           script: ['Б'],
         ),
       ),
     );
     await tester.tap(find.text('Коснитесь, чтобы начать'));
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(find.text('Б'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Пропущено: 1'), findsOneWidget);
     expect(find.text('Верно: 0'), findsOneWidget);
 
@@ -167,14 +182,22 @@ void main() {
       const MaterialApp(
         home: AttentionTrainerScreen(
           key: Key('digit'),
-          roundLength: Duration(milliseconds: 220),
-          stimulusLength: Duration(seconds: 2),
+          roundLength: Duration(milliseconds: 700),
+          rules: AttentionRules(
+            minSpawn: Duration(seconds: 5),
+            maxSpawn: Duration(seconds: 5),
+            minLife: Duration(milliseconds: 120),
+            maxLife: Duration(milliseconds: 120),
+          ),
           script: ['4'],
         ),
       ),
     );
     await tester.tap(find.text('Коснитесь, чтобы начать'));
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(find.text('4'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Пропущено: 0'), findsOneWidget);
     expect(find.text('Неверно: 0'), findsOneWidget);
     expect(tester.takeException(), isNull);

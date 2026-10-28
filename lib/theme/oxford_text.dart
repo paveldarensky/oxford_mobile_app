@@ -206,7 +206,7 @@ abstract final class OxfordText {
   static const attentionSymbol = TextStyle(
     fontFamily: _family,
     fontFamilyFallback: _fallback,
-    fontSize: 44,
+    fontSize: 24,
     fontWeight: FontWeight.w600,
     height: 1,
   );
