@@ -54,6 +54,127 @@ abstract final class OxfordText {
     height: 1.15,
   );
 
+  static const lessonTitle = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 32,
+    fontWeight: FontWeight.w700,
+    color: OxfordColors.readerTitle,
+    height: 1.15,
+  );
+
+  static const lessonTranscription = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: ['GolosTextLatin', 'NotoSans'],
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
+    color: OxfordColors.readerMuted,
+    height: 1.3,
+  );
+
+  static const lessonTranslation = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    color: OxfordColors.readerGold,
+    height: 1.25,
+  );
+
+  static const lessonNote = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    fontStyle: FontStyle.italic,
+    color: OxfordColors.readerMuted,
+    height: 1.35,
+  );
+
+  static const lessonSection = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: OxfordColors.readerTitle,
+    height: 1.2,
+  );
+
+  static const lessonOriginal = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16.5,
+    fontWeight: FontWeight.w700,
+    color: OxfordColors.readerTitle,
+    height: 1.35,
+  );
+
+  static const lessonExampleTranslation = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    fontStyle: FontStyle.italic,
+    color: OxfordColors.readerMuted,
+    height: 1.35,
+  );
+
+  static const lessonBody = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16.5,
+    fontWeight: FontWeight.w400,
+    color: OxfordColors.readerTitle,
+    height: 1.4,
+  );
+
+  static const nextLabel = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.4,
+    color: Colors.white,
+    height: 1.1,
+  );
+
+  static const trainerTitle = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    color: OxfordColors.trainerTitle,
+    height: 1.2,
+  );
+
+  static const trainerSubtitle = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 13.5,
+    fontWeight: FontWeight.w500,
+    color: OxfordColors.trainerSubtitle,
+    height: 1.25,
+  );
+
+  static const trainerChip = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: OxfordColors.trainerTitle,
+    height: 1.1,
+  );
+
+  static const howToTrain = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.6,
+    color: Colors.white,
+    height: 1.1,
+  );
+
   static const tabLabel = TextStyle(
     fontFamily: _family,
     fontFamilyFallback: _fallback,

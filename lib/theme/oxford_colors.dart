@@ -24,6 +24,24 @@ abstract final class OxfordColors {
   static const cardTitle = Color(0xFF1A2744);
   static const flame = Color(0xFFE8B057);
 
+  /// Фон экрана задания. Светлее фона сетки.
+  static const readerBackground = Color(0xFFF5F5F5);
+  static const readerTitle = Color(0xFF1A1A1A);
+  static const readerMuted = Color(0xFF757575);
+  static const readerGold = Color(0xFF5E3E17);
+  static const readerDivider = Color(0xFFE3E3E3);
+
+  /// Фон вкладки «Тренажеры»: холоднее сетки заданий.
+  static const trainersBackground = Color(0xFFE4E7EE);
+  static const trainerTitle = Color(0xFF3E5678);
+  static const trainerSubtitle = Color(0xFF7B91A6);
+  static const trainerAccent = Color(0xFFFFBE56);
+  static const trainerChip = Color(0xFFC5D3E3);
+  static const trainerChipBorder = Color(0xFF5C7394);
+  static const trainerChipIdleBorder = Color(0xFFE1E6EE);
+  static const trainerGoldBorder = Color(0xFFE6C98A);
+  static const trainerIconRing = Color(0xFFD5DEE8);
+
   static const cardShadow = BoxShadow(
     color: Color(0x1A000000),
     blurRadius: 8,

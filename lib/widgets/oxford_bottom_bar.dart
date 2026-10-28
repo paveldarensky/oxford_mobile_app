@@ -45,10 +45,20 @@ class _TabButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  static String _tooltipFor(OxfordTab tab) {
+    return switch (tab) {
+      OxfordTab.tasks => 'Задания',
+      OxfordTab.trainers => 'Тренажеры',
+      OxfordTab.bookmarks => 'Закладки',
+      OxfordTab.premium => 'Премиум',
+    };
+  }
+
   static String? _labelFor(OxfordTab tab) {
     return switch (tab) {
       OxfordTab.tasks => 'Задания',
-      OxfordTab.trainers || OxfordTab.bookmarks || OxfordTab.premium => null,
+      OxfordTab.trainers => 'Тренажеры',
+      OxfordTab.bookmarks || OxfordTab.premium => null,
     };
   }
 
@@ -57,25 +67,31 @@ class _TabButton extends StatelessWidget {
     final color = selected ? OxfordColors.active : Colors.white;
     final label = selected ? _labelFor(tab) : null;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        splashColor: Colors.white24,
-        highlightColor: Colors.white10,
-        child: SizedBox.expand(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ChromeIcon(kind: tab, color: color, size: 26),
-              const SizedBox(height: 2),
-              SizedBox(
-                height: 14,
-                child: label == null
-                    ? null
-                    : Text(label, style: OxfordText.tabLabel),
-              ),
-            ],
+    return Tooltip(
+      message: _tooltipFor(tab),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: Colors.white24,
+          highlightColor: Colors.white10,
+          child: SizedBox.expand(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ChromeIcon(kind: tab, color: color, size: 26),
+                const SizedBox(height: 2),
+                SizedBox(
+                  height: 14,
+                  child: label == null
+                      ? null
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(label, style: OxfordText.tabLabel),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

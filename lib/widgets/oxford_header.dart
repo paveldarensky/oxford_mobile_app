@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:oxford/theme/oxford_text.dart';
 import 'package:oxford/widgets/icons/chrome_icons.dart';
 
-/// Тёмная шапка вкладки «Задания»: заголовок, профиль и меню.
+/// Тёмная шапка вкладки: заголовок, профиль и меню.
 class OxfordHeader extends StatelessWidget {
-  const OxfordHeader({super.key, this.onProfile, this.onMenu});
+  const OxfordHeader({
+    super.key,
+    this.title = 'Задания',
+    this.onProfile,
+    this.onMenu,
+  });
 
+  final String title;
   final VoidCallback? onProfile;
   final VoidCallback? onMenu;
 
@@ -17,7 +23,7 @@ class OxfordHeader extends StatelessWidget {
         padding: const EdgeInsets.only(left: 20),
         child: Row(
           children: [
-            const Text('Задания', style: OxfordText.headerTitle),
+            Text(title, style: OxfordText.headerTitle),
             const Spacer(),
             _HeaderButton(
               tooltip: 'Профиль',
