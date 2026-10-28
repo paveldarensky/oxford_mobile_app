@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:oxford/models/attention_rules.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 import 'package:oxford/theme/oxford_text.dart';
+import 'package:oxford/widgets/icons/asset_icon.dart';
 import 'package:oxford/widgets/icons/reader_icons.dart';
 import 'package:oxford/widgets/icons/tap_hand_icon.dart';
 
@@ -585,39 +586,14 @@ class _InfoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size.square(18),
-      painter: const _InfoPainter(),
+    return const AssetIcon(
+      path: 'assets/icons/attention/info.png',
+      fallback: Icons.info,
+      size: 18,
+      color: Color(0xFF5C7F9E),
+      tint: true,
     );
   }
-}
-
-class _InfoPainter extends CustomPainter {
-  const _InfoPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF5C7F9E);
-    canvas.drawCircle(size.center(Offset.zero), size.width / 2, paint);
-    final mark = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round;
-    final cx = size.width / 2;
-    canvas.drawCircle(
-      Offset(cx, size.height * 0.32),
-      1.1,
-      Paint()..color = Colors.white,
-    );
-    canvas.drawLine(
-      Offset(cx, size.height * 0.48),
-      Offset(cx, size.height * 0.74),
-      mark,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ScoreBar extends StatelessWidget {
