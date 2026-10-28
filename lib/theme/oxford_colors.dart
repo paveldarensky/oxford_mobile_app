@@ -42,6 +42,14 @@ abstract final class OxfordColors {
   static const trainerGoldBorder = Color(0xFFE6C98A);
   static const trainerIconRing = Color(0xFFD5DEE8);
 
+  static const attentionLetter = Color(0xFFD64545);
+  static const attentionDigit = Color(0xFF243044);
+  static const attentionCorrect = Color(0xFF5E9A3C);
+  static const attentionWrong = Color(0xFFE15B64);
+  static const attentionMiss = Color(0xFFE39A3C);
+  static const attentionHint = Color(0xFF8E96A3);
+  static const attentionResult = Color(0xFF3A3A3A);
+
   static const cardShadow = BoxShadow(
     color: Color(0x1A000000),
     blurRadius: 8,

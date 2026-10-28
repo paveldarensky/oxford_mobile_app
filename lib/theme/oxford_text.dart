@@ -175,6 +175,86 @@ abstract final class OxfordText {
     height: 1.1,
   );
 
+  static const attentionHeader = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: Colors.white,
+    height: 1.1,
+  );
+
+  static const attentionPrompt = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: OxfordColors.attentionHint,
+    height: 1.2,
+  );
+
+  static const attentionButton = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.1,
+    color: Colors.white,
+    height: 1.1,
+  );
+
+  static const attentionSymbol = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 44,
+    fontWeight: FontWeight.w600,
+    height: 1,
+  );
+
+  static const attentionHint = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: OxfordColors.trainerTitle,
+    height: 1.2,
+  );
+
+  static const attentionScore = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
+    height: 1,
+  );
+
+  static const attentionScoreLabel = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: OxfordColors.attentionHint,
+    height: 1.1,
+  );
+
+  static const attentionResultTitle = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 28,
+    fontWeight: FontWeight.w700,
+    color: OxfordColors.trainerTitle,
+    height: 1.1,
+  );
+
+  static const attentionResultLine = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: OxfordColors.attentionResult,
+    height: 1.45,
+  );
+
   static const tabLabel = TextStyle(
     fontFamily: _family,
     fontFamilyFallback: _fallback,

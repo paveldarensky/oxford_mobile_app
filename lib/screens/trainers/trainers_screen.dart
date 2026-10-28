@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oxford/data/trainers_data.dart';
+import 'package:oxford/screens/attention/attention_trainer_screen.dart';
 import 'package:oxford/models/trainer.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 import 'package:oxford/theme/oxford_text.dart';
@@ -210,6 +211,15 @@ class _TrainerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Pressable(
+      onTap: trainer.icon == TrainerIcon.attention
+          ? () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const AttentionTrainerScreen(),
+                ),
+              );
+            }
+          : null,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 18, 14, 18),
         child: Row(
@@ -279,10 +289,12 @@ class _HowToBanner extends StatelessWidget {
 class _Pressable extends StatefulWidget {
   const _Pressable({
     required this.child,
+    this.onTap,
     this.borderColor = Colors.transparent,
   });
 
   final Widget child;
+  final VoidCallback? onTap;
   final Color borderColor;
 
   @override
@@ -312,7 +324,7 @@ class _PressableState extends State<_Pressable> {
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () {},
+            onTap: widget.onTap ?? () {},
             onHighlightChanged: (pressed) => setState(() => _pressed = pressed),
             splashColor: const Color(0x1A002147),
             highlightColor: const Color(0x0F002147),
