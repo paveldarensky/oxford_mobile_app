@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oxford/app.dart';
 import 'package:oxford/models/attention_rules.dart';
 import 'package:oxford/screens/attention/attention_trainer_screen.dart';
+import 'package:oxford/theme/oxford_colors.dart';
 
 void main() {
   testWidgets('Daily tasks screen matches the launch layout', (tester) async {
@@ -233,8 +234,8 @@ void main() {
 
     await tester.tap(find.text('Коснитесь, чтобы начать'));
     await tester.pump();
-    expect(find.text('Нажимайте только когда появится буква'), findsOneWidget);
-    expect(find.text('Правильно'), findsOneWidget);
+    expect(find.text('Старт через 4 секунд'), findsOneWidget);
+    expect(find.text('Нажимайте только когда появится буква'), findsNothing);
 
     await tester.tap(find.byTooltip('Назад'));
     await tester.pumpAndSettle();
@@ -256,6 +257,7 @@ void main() {
       const MaterialApp(
         home: AttentionTrainerScreen(
           key: Key('letters'),
+          countdown: Duration.zero,
           roundLength: Duration(milliseconds: 500),
           rules: held,
           script: ['Щ', '7'],
@@ -273,7 +275,23 @@ void main() {
 
     await tester.tap(find.text('Щ'));
     await tester.tap(find.text('7'));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Material && widget.color == OxfordColors.attentionHit,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Material &&
+            widget.color == OxfordColors.attentionHitWrong,
+      ),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(milliseconds: 900));
     expect(find.text('Результаты'), findsOneWidget);
     expect(find.text('Верно: 1'), findsOneWidget);
     expect(find.text('Неверно: 1'), findsOneWidget);
@@ -288,6 +306,7 @@ void main() {
       const MaterialApp(
         home: AttentionTrainerScreen(
           key: Key('miss'),
+          countdown: Duration.zero,
           roundLength: Duration(milliseconds: 700),
           rules: AttentionRules(
             minSpawn: Duration(seconds: 5),
@@ -303,7 +322,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 180));
     expect(find.text('Б'), findsNothing);
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 1100));
     expect(find.text('Пропущено: 1'), findsOneWidget);
     expect(find.text('Верно: 0'), findsOneWidget);
 
@@ -311,6 +330,7 @@ void main() {
       const MaterialApp(
         home: AttentionTrainerScreen(
           key: Key('digit'),
+          countdown: Duration.zero,
           roundLength: Duration(milliseconds: 700),
           rules: AttentionRules(
             minSpawn: Duration(seconds: 5),
@@ -326,9 +346,57 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 180));
     expect(find.text('4'), findsNothing);
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 1100));
     expect(find.text('Пропущено: 0'), findsOneWidget);
     expect(find.text('Неверно: 0'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Attention countdown and timer reach zero', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AttentionTrainerScreen(
+          roundLength: Duration(seconds: 8),
+          rules: AttentionRules(
+            minSpawn: Duration(seconds: 30),
+            maxSpawn: Duration(seconds: 30),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Коснитесь, чтобы начать'));
+    await tester.pump();
+    expect(find.text('Старт через 4 секунд'), findsOneWidget);
+    expect(find.text('Нажимайте только когда появится буква'), findsNothing);
+
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Старт через 3 секунд'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.text('8'), findsOneWidget);
+
+    Color borderOf(String seconds) {
+      final timer = find.byKey(const Key('attention-timer'));
+      final box = tester.widget<Container>(timer);
+      final border = box.decoration! as BoxDecoration;
+      final number = tester.widget<Text>(
+        find.descendant(of: timer, matching: find.byType(Text)),
+      );
+      expect(number.data, seconds);
+      expect(number.style?.color, OxfordColors.attentionTimerText);
+      return (border.border! as Border).top.color;
+    }
+
+    expect(borderOf('8'), OxfordColors.attentionCorrect);
+    await tester.pump(const Duration(seconds: 2));
+    expect(borderOf('6'), OxfordColors.attentionTimerWarn);
+    await tester.pump(const Duration(seconds: 3));
+    expect(borderOf('3'), OxfordColors.attentionTimerHot);
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.text('Результаты'), findsNothing);
+    expect(borderOf('0'), OxfordColors.attentionTimerHot);
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Результаты'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

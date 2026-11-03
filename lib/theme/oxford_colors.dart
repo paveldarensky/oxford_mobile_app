@@ -55,6 +55,15 @@ abstract final class OxfordColors {
   static const attentionDigit = Color(0xFF243044);
   static const attentionCorrect = Color(0xFF5E9A3C);
   static const attentionWrong = Color(0xFFE15B64);
+
+  /// Квадрат под верной буквой и под цифрой.
+  static const attentionHit = Color(0xFF74F820);
+  static const attentionHitWrong = Color(0xFFF87878);
+
+  /// Число таймера и его обводка: обычное, с 6 секунд, с 3 секунд.
+  static const attentionTimerText = Color(0xFF002040);
+  static const attentionTimerWarn = Color(0xFFE8A64E);
+  static const attentionTimerHot = Color(0xFFE45460);
   static const attentionMiss = Color(0xFFE39A3C);
   static const attentionHint = Color(0xFF8E96A3);
   static const attentionResult = Color(0xFF3A3A3A);

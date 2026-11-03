@@ -213,6 +213,15 @@ abstract final class OxfordText {
     height: 1.1,
   );
 
+  static const attentionCountdown = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: OxfordColors.header,
+    height: 1.2,
+  );
+
   static const attentionHeader = TextStyle(
     fontFamily: _family,
     fontFamilyFallback: _fallback,

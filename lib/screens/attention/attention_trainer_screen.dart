@@ -31,11 +31,15 @@ class AttentionTrainerScreen extends StatefulWidget {
   const AttentionTrainerScreen({
     super.key,
     this.roundLength = const Duration(seconds: 60),
+    this.countdown = const Duration(seconds: 4),
     this.rules = const AttentionRules(),
     this.script,
   });
 
   final Duration roundLength;
+
+  /// «Старт через N секунд» перед раундом. Ноль — сразу в игру.
+  final Duration countdown;
   final AttentionRules rules;
 
   /// Заданная очередь символов. Нужна, чтобы проверить подсчёт.
@@ -45,7 +49,7 @@ class AttentionTrainerScreen extends StatefulWidget {
   State<AttentionTrainerScreen> createState() => _AttentionTrainerScreenState();
 }
 
-enum _Phase { ready, playing, results }
+enum _Phase { ready, countdown, playing, results }
 
 class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
   static const _letters = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ';
@@ -73,6 +77,13 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
   Timer? _roundTimer;
   Timer? _clockTimer;
   Timer? _spawnTimer;
+  Timer? _countdownTimer;
+  Timer? _zeroTimer;
+  final List<Timer> _flashTimers = [];
+  int _countdown = 4;
+
+  /// Сколько «0» остаётся на экране, прежде чем откроются результаты.
+  static const _zeroHold = Duration(milliseconds: 400);
 
   int get _alive => _marks.where((mark) => !mark.resolved).length;
 
@@ -86,28 +97,72 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
     _roundTimer?.cancel();
     _clockTimer?.cancel();
     _spawnTimer?.cancel();
+    _countdownTimer?.cancel();
+    _zeroTimer?.cancel();
+    for (final timer in _flashTimers) {
+      timer.cancel();
+    }
+    _flashTimers.clear();
   }
 
   void _start() {
     _stopTimers();
+    final seconds = widget.countdown.inSeconds;
+    if (seconds < 1) {
+      _beginRound();
+      return;
+    }
+    setState(() {
+      _phase = _Phase.countdown;
+      _countdown = seconds;
+      _marks.clear();
+    });
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _phase != _Phase.countdown) return;
+      if (_countdown <= 1) {
+        _beginRound();
+        return;
+      }
+      setState(() => _countdown -= 1);
+    });
+  }
+
+  void _beginRound() {
+    _stopTimers();
+    final wholeSeconds = widget.roundLength.inSeconds;
     setState(() {
       _phase = _Phase.playing;
       _correct = 0;
       _wrong = 0;
       _missed = 0;
-      _seconds = widget.roundLength.inSeconds < 1
-          ? 1
-          : widget.roundLength.inSeconds;
+      _seconds = wholeSeconds < 1 ? 1 : wholeSeconds;
       _cursor = 0;
       _marks.clear();
     });
     _spawnNow();
     _armSpawn();
-    _roundTimer = Timer(widget.roundLength, _finish);
+    if (wholeSeconds < 1) {
+      _roundTimer = Timer(widget.roundLength, _showZero);
+      return;
+    }
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _phase != _Phase.playing || _seconds <= 1) return;
+      if (!mounted || _phase != _Phase.playing) return;
+      if (_seconds <= 1) {
+        _showZero();
+        return;
+      }
       setState(() => _seconds -= 1);
     });
+  }
+
+  void _showZero() {
+    if (!mounted || _phase != _Phase.playing) return;
+    _spawnTimer?.cancel();
+    _clockTimer?.cancel();
+    _roundTimer?.cancel();
+    setState(() => _seconds = 0);
+    _zeroTimer?.cancel();
+    _zeroTimer = Timer(_zeroHold, _finish);
   }
 
   void _armSpawn() {
@@ -185,14 +240,22 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
     final mark = _find(id);
     if (mark == null || mark.resolved || _phase != _Phase.playing) return;
     mark.resolved = true;
+    mark.flash = mark.isLetter
+        ? OxfordColors.attentionHit
+        : OxfordColors.attentionHitWrong;
     setState(() {
       if (mark.isLetter) {
         _correct += 1;
       } else {
         _wrong += 1;
       }
-      _marks.remove(mark);
     });
+    _flashTimers.add(
+      Timer(const Duration(milliseconds: 220), () {
+        if (!mounted) return;
+        setState(() => _marks.remove(mark));
+      }),
+    );
   }
 
   void _expire(int id) {
@@ -242,7 +305,7 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
           children: [
             const _TrainerHeader(title: 'Тренажер внимания'),
             Expanded(child: _body()),
-            if (_phase != _Phase.playing)
+            if (_phase == _Phase.ready || _phase == _Phase.results)
               const SafeArea(top: false, child: _FooterButtons()),
           ],
         ),
@@ -253,6 +316,7 @@ class _AttentionTrainerScreenState extends State<AttentionTrainerScreen> {
   Widget _body() {
     return switch (_phase) {
       _Phase.ready => _ReadyView(onStart: _start),
+      _Phase.countdown => _CountdownView(seconds: _countdown),
       _Phase.playing => _PlayView(
         seconds: _seconds,
         marks: _marks,
@@ -345,6 +409,26 @@ class _ReadyView extends StatelessWidget {
   }
 }
 
+class _CountdownView extends StatelessWidget {
+  const _CountdownView({required this.seconds});
+
+  final int seconds;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 36),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Text(
+          'Старт через $seconds секунд',
+          style: OxfordText.attentionCountdown,
+        ),
+      ),
+    );
+  }
+}
+
 class _PlayView extends StatelessWidget {
   const _PlayView({
     required this.seconds,
@@ -385,7 +469,7 @@ class _PlayView extends StatelessWidget {
                 return Stack(
                   children: [
                     for (final mark in marks)
-                      if (!mark.resolved)
+                      if (!mark.resolved || mark.flash != null)
                         Positioned(
                           left: mark.x * width,
                           top: mark.y * height,
@@ -430,6 +514,7 @@ class _Mark {
   final double y;
   final Duration life;
   bool resolved = false;
+  Color? flash;
 }
 
 class _Glyph extends StatefulWidget {
@@ -495,23 +580,30 @@ class _GlyphState extends State<_Glyph> with SingleTickerProviderStateMixin {
     final color = widget.mark.isLetter
         ? OxfordColors.attentionLetter
         : OxfordColors.attentionDigit;
-    return GestureDetector(
-      onTap: widget.onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 48,
-        height: 48,
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _life,
-            builder: (context, child) {
-              return Opacity(opacity: _opacity(_life.value), child: child);
-            },
-            child: Text(
-              widget.mark.text,
-              style: OxfordText.attentionSymbol.copyWith(
-                fontSize: widget.size,
-                color: color,
+    final flash = widget.mark.flash;
+    return AnimatedBuilder(
+      animation: _life,
+      builder: (context, child) {
+        final opacity = flash != null ? 1.0 : _opacity(_life.value);
+        return Opacity(opacity: opacity, child: child);
+      },
+      child: Material(
+        color: flash ?? Colors.transparent,
+        type: flash == null ? MaterialType.transparency : MaterialType.canvas,
+        child: InkWell(
+          onTap: widget.onTap,
+          splashColor: const Color(0x66FFFFFF),
+          highlightColor: const Color(0x33FFFFFF),
+          child: SizedBox(
+            width: 46,
+            height: 46,
+            child: Center(
+              child: Text(
+                widget.mark.text,
+                style: OxfordText.attentionSymbol.copyWith(
+                  fontSize: widget.size,
+                  color: color,
+                ),
               ),
             ),
           ),
@@ -526,25 +618,33 @@ class _TimerPill extends StatelessWidget {
 
   final int seconds;
 
+  Color get _chrome {
+    if (seconds <= 3) return OxfordColors.attentionTimerHot;
+    if (seconds <= 6) return OxfordColors.attentionTimerWarn;
+    return OxfordColors.attentionCorrect;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final chrome = _chrome;
     return Container(
+      key: const Key('attention-timer'),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: OxfordColors.attentionCorrect, width: 1.6),
+        border: Border.all(color: chrome, width: 1.6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const ClockGlyph(color: OxfordColors.attentionCorrect),
+          ClockGlyph(color: chrome),
           const SizedBox(width: 6),
           Text(
             '$seconds',
             style: OxfordText.attentionScore.copyWith(
               fontSize: 18,
-              color: OxfordColors.attentionCorrect,
+              color: OxfordColors.attentionTimerText,
             ),
           ),
         ],
