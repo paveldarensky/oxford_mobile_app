@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oxford/data/trainers_data.dart';
 import 'package:oxford/screens/attention/attention_trainer_screen.dart';
+import 'package:oxford/screens/pattern/pattern_trainer_screen.dart';
 import 'package:oxford/models/trainer.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 import 'package:oxford/theme/oxford_text.dart';
@@ -217,15 +218,23 @@ class _TrainerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Pressable(
-      onTap: trainer.icon == TrainerIcon.attention
-          ? () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const AttentionTrainerScreen(),
-                ),
-              );
-            }
-          : null,
+      onTap: switch (trainer.icon) {
+        TrainerIcon.attention => () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) => const AttentionTrainerScreen(),
+            ),
+          );
+        },
+        TrainerIcon.pattern => () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) => const PatternTrainerScreen(),
+            ),
+          );
+        },
+        _ => null,
+      },
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 18, 14, 18),
         child: Row(

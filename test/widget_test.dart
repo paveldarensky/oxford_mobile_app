@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oxford/app.dart';
 import 'package:oxford/models/attention_rules.dart';
 import 'package:oxford/screens/attention/attention_trainer_screen.dart';
+import 'package:oxford/screens/pattern/pattern_trainer_screen.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 
 void main() {
@@ -77,6 +78,9 @@ void main() {
     expect(find.text('Запоминание слов'), findsOneWidget);
 
     await tester.tap(find.text('Паттерн'));
+    await tester.pumpAndSettle();
+    expect(find.text('Коснитесь, чтобы начать'), findsOneWidget);
+    await tester.tap(find.byTooltip('Назад'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
@@ -400,6 +404,11 @@ void main() {
     expect(find.text('Тренажер внимания'), findsOneWidget);
     expect(find.text('Паттерн'), findsOneWidget);
     expect(find.text('Таблица Шульте'), findsOneWidget);
+    await tester.tap(find.text('Паттерн'));
+    await tester.pumpAndSettle();
+    expect(find.text('Как работает тренажёр'), findsOneWidget);
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ТРЕНИРОВАТЬ'), 200);
     expect(find.text('ТРЕНИРОВАТЬ'), findsOneWidget);
 
@@ -429,6 +438,146 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Тренажеры'), findsWidgets);
     expect(find.text('ТРЕНИРОВАТЬ'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Pattern trainer scores a round and starts the next', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    PatternScore.debugClear();
+    addTearDown(PatternScore.debugClear);
+
+    const wide = <bool>[
+      true, false, false, true, //
+      false, false, false, false, //
+      false, true, false, false, //
+      false, false, true, true,
+    ];
+    const narrow = <bool>[
+      true, false, true, //
+      false, false, false, //
+      false, true, true, //
+      false, false, false,
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const PatternTrainerScreen(
+                    tick: Duration(milliseconds: 40),
+                    resultHold: Duration(milliseconds: 80),
+                    columnPlan: [4, 3],
+                    patterns: [wide, narrow],
+                  ),
+                ),
+              );
+            },
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Паттерн'), findsOneWidget);
+    expect(find.text('СТАТИСТИКА'), findsOneWidget);
+    expect(find.text('НАСТРОЙКИ'), findsOneWidget);
+    await tester.tap(find.text('Как работает тренажёр'));
+    await tester.pump();
+    expect(find.text('Коснитесь, чтобы начать'), findsOneWidget);
+
+    await tester.tap(find.text('Коснитесь, чтобы начать'));
+    await tester.pump();
+    expect(find.text('Приготовьтесь'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('ЗАВЕРШИТЬ'), findsOneWidget);
+    expect(find.text('СТАТИСТИКА'), findsNothing);
+    expect(find.byKey(const ValueKey('pattern-cell-15')), findsOneWidget);
+    expect(_patternFilled(tester, 0), isFalse);
+
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(find.text('2'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(find.text('1'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(find.text('Запомните паттерн'), findsOneWidget);
+    expect(find.text('Осталось: 3 с'), findsOneWidget);
+    expect(_patternFilled(tester, 0), isTrue);
+    expect(_patternFilled(tester, 1), isFalse);
+
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(find.text('Воспроизведите паттерн'), findsOneWidget);
+    expect(find.text('ГОТОВО'), findsOneWidget);
+    expect(find.textContaining('Осталось'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('pattern-cell-0')));
+    await tester.pump();
+    expect(_patternFilled(tester, 0), isTrue);
+    await tester.tap(find.byKey(const ValueKey('pattern-cell-0')));
+    await tester.pump();
+    expect(_patternFilled(tester, 0), isFalse);
+
+    for (final index in [0, 3, 9, 14, 15]) {
+      await tester.tap(find.byKey(ValueKey('pattern-cell-$index')));
+      await tester.pump();
+    }
+    await tester.tap(find.text('ГОТОВО'));
+    await tester.pump();
+    expect(find.text('Точность: 100%'), findsOneWidget);
+    expect(_patternFilled(tester, 0), isFalse);
+    expect(PatternScore.rounds, isEmpty);
+
+    await tester.pump(const Duration(milliseconds: 80));
+    expect(find.text('Приготовьтесь'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.byKey(const ValueKey('pattern-cell-11')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pattern-cell-12')), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(find.text('Запомните паттерн'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(find.text('Воспроизведите паттерн'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pattern-cell-0')));
+    await tester.tap(find.byKey(const ValueKey('pattern-cell-2')));
+    await tester.tap(find.byKey(const ValueKey('pattern-cell-1')));
+    await tester.pump();
+    await tester.tap(find.text('ГОТОВО'));
+    await tester.pump();
+    expect(find.text('Точность: 50%'), findsOneWidget);
+    expect(PatternScore.rounds, isEmpty);
+
+    await tester.tap(find.text('ЗАВЕРШИТЬ'));
+    await tester.pumpAndSettle();
+    expect(find.text('open'), findsOneWidget);
+    expect(PatternScore.rounds, hasLength(1));
+    expect(PatternScore.rounds.single.percent, 75);
+    expect(
+      PatternResult(at: DateTime(2026, 9, 27, 13, 30, 21), percent: 75).line,
+      '2026-09-27 13:30:21 75%',
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: PatternTrainerScreen(
+          tick: Duration(milliseconds: 20),
+          columnPlan: [3],
+        ),
+      ),
+    );
+    await tester.tap(find.text('Коснитесь, чтобы начать'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('pattern-cell-11')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pattern-cell-12')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
     expect(tester.takeException(), isNull);
   });
 
@@ -479,4 +628,14 @@ void main() {
     expect(find.text('Результаты'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+}
+
+bool _patternFilled(WidgetTester tester, int index) {
+  final material = tester.widget<Material>(
+    find.descendant(
+      of: find.byKey(ValueKey('pattern-cell-$index')),
+      matching: find.byType(Material),
+    ),
+  );
+  return material.color == OxfordColors.header;
 }

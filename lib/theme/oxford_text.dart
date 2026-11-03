@@ -267,6 +267,24 @@ abstract final class OxfordText {
     height: 1.1,
   );
 
+  static const patternTitle = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: Color(0xFF1B2E4A),
+    height: 1.2,
+  );
+
+  static const patternStatus = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF5C7390),
+    height: 1.2,
+  );
+
   static const attentionPrompt = TextStyle(
     fontFamily: _family,
     fontFamilyFallback: _fallback,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oxford/data/trainers_data.dart';
 import 'package:oxford/models/trainer.dart';
 import 'package:oxford/screens/attention/attention_trainer_screen.dart';
+import 'package:oxford/screens/pattern/pattern_trainer_screen.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 import 'package:oxford/theme/oxford_text.dart';
 import 'package:oxford/widgets/icons/asset_icon.dart';
@@ -60,6 +61,15 @@ class _SkillsScreenState extends State<SkillsScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _openPattern() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const PatternTrainerScreen(),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final scored = AttentionScore.hasRounds;
@@ -80,6 +90,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
             trainers: skill == _Skill.attention ? _attentionTrainers : const [],
             onToggle: () => _toggle(skill),
             onTrain: skill == _Skill.attention ? _trainAttention : null,
+            onPattern: skill == _Skill.attention ? _openPattern : null,
           ),
           const SizedBox(height: 12),
         ],
@@ -133,6 +144,7 @@ class _SkillCard extends StatelessWidget {
     required this.trainers,
     required this.onToggle,
     required this.onTrain,
+    required this.onPattern,
   });
 
   final String title;
@@ -142,6 +154,7 @@ class _SkillCard extends StatelessWidget {
   final List<TrainerIcon> trainers;
   final VoidCallback onToggle;
   final VoidCallback? onTrain;
+  final VoidCallback? onPattern;
 
   @override
   Widget build(BuildContext context) {
@@ -196,9 +209,11 @@ class _SkillCard extends StatelessWidget {
                         for (final icon in trainers)
                           _TrainerRow(
                             trainer: _trainerByIcon(icon),
-                            onTap: icon == TrainerIcon.attention
-                                ? onTrain
-                                : null,
+                            onTap: switch (icon) {
+                              TrainerIcon.attention => onTrain,
+                              TrainerIcon.pattern => onPattern,
+                              _ => null,
+                            },
                           ),
                         if (onTrain != null) ...[
                           const SizedBox(height: 8),
