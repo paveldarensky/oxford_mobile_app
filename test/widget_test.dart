@@ -85,6 +85,135 @@ void main() {
     expect(find.text('Тренажер внимания'), findsNothing);
   });
 
+  testWidgets('Daily lessons follow the section rules', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const OxfordApp());
+    await tester.pumpAndSettle();
+
+    Future<void> openSection(String title) async {
+      final card = find.text(title);
+      await tester.scrollUntilVisible(
+        card,
+        300,
+        scrollable: find.byType(Scrollable),
+      );
+      final height =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      if (tester.getCenter(card).dy > height - 160) {
+        await tester.drag(find.byType(Scrollable), const Offset(0, -220));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.tap(find.text('Совет дня'));
+    await tester.pumpAndSettle();
+    expect(find.text('Премиум раздел'), findsOneWidget);
+    expect(find.text('Хотите попробовать премиум подписку?'), findsOneWidget);
+    expect(find.text('Пять минут без телефона'), findsNothing);
+    await tester.tap(find.text('ДА'));
+    await tester.pumpAndSettle();
+    expect(find.text('Премиум раздел'), findsNothing);
+    expect(find.text('Совет дня'), findsOneWidget);
+
+    await tester.tap(find.text('Английский язык'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Произношение').hitTestable(), findsOneWidget);
+    await tester.drag(find.byType(PageView), const Offset(400, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Пять минут без телефона'), findsNothing);
+    expect(find.text('Black sheep'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('В избранное'));
+    await tester.tap(find.byTooltip('Нравится'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.thumb_up), findsOneWidget);
+    expect(find.byTooltip('Убрать из избранного'), findsOneWidget);
+
+    await tester.tap(find.text('ДАЛЬШЕ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ephemeral'), findsOneWidget);
+    expect(find.byTooltip('Произношение').hitTestable(), findsNothing);
+    expect(find.byTooltip('Убрать из избранного'), findsOneWidget);
+    expect(find.byIcon(Icons.thumb_up), findsOneWidget);
+
+    await tester.drag(find.byType(PageView), const Offset(320, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Black sheep'), findsOneWidget);
+    expect(find.byTooltip('Убрать из избранного'), findsOneWidget);
+    expect(find.byIcon(Icons.thumb_up), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Английский язык'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Убрать из избранного'), findsOneWidget);
+    expect(find.byIcon(Icons.thumb_up), findsOneWidget);
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+
+    await openSection('Задачи и головоломки');
+    expect(find.text('16 м сукна'), findsOneWidget);
+    expect(find.text('ПОСМОТРЕТЬ ОТВЕТ'), findsOneWidget);
+    expect(find.textContaining('7 дней'), findsNothing);
+
+    await tester.tap(find.text('ПОСМОТРЕТЬ ОТВЕТ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Показать ответ?'), findsOneWidget);
+    expect(
+      find.text('Посмотрите рекламу, чтобы открыть ответ'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('НЕТ'));
+    await tester.pumpAndSettle();
+    expect(find.text('ПОСМОТРЕТЬ ОТВЕТ'), findsOneWidget);
+
+    await tester.tap(find.text('ПОСМОТРЕТЬ ОТВЕТ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ДА'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('7 дней'), findsOneWidget);
+    expect(find.text('ПОСМОТРЕТЬ ОТВЕТ'), findsNothing);
+
+    await tester.tap(find.text('ДАЛЬШЕ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Маленький принц'), findsOneWidget);
+    expect(find.textContaining('7 дней').hitTestable(), findsNothing);
+    await tester.drag(find.byType(PageView), const Offset(320, 0));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('7 дней').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+
+    await openSection('История');
+    expect(find.text('Пороховой заговор'), findsOneWidget);
+    expect(find.text('Лондон, 5 ноября 1605'), findsOneWidget);
+    expect(find.byType(Image).hitTestable(), findsOneWidget);
+    expect(find.byTooltip('Произношение').hitTestable(), findsNothing);
+
+    await tester.drag(find.text('Пороховой заговор'), const Offset(0, -700));
+    await tester.pumpAndSettle();
+    expect(find.byType(Image).hitTestable(), findsNothing);
+
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+
+    await openSection('Стихи');
+    expect(find.text('Ночь, улица, фонарь,\nаптека...'), findsOneWidget);
+    expect(find.text('Александр Блок'), findsOneWidget);
+    expect(find.text('ДАЛЬШЕ'), findsNothing);
+    expect(find.byTooltip('Убрать из избранного'), findsOneWidget);
+    expect(find.byIcon(Icons.thumb_up), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Attention trainer opens from the list', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;

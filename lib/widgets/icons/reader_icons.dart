@@ -80,11 +80,13 @@ class ThumbIcon extends StatelessWidget {
     required this.up,
     this.size = 28,
     this.color = Colors.white,
+    this.filled = false,
   });
 
   final bool up;
   final double size;
   final Color color;
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +94,9 @@ class ThumbIcon extends StatelessWidget {
       path: up
           ? 'assets/icons/reader/thumb_up.png'
           : 'assets/icons/reader/thumb_down.png',
-      fallback: up ? Icons.thumb_up_outlined : Icons.thumb_down_outlined,
+      fallback: up
+          ? (filled ? Icons.thumb_up : Icons.thumb_up_outlined)
+          : (filled ? Icons.thumb_down : Icons.thumb_down_outlined),
       size: size,
       color: color,
       tint: true,

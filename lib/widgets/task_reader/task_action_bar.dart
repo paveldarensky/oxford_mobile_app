@@ -15,7 +15,8 @@ class TaskActionBar extends StatelessWidget {
     required this.onDislike,
   });
 
-  final VoidCallback onNext;
+  /// На последнем задании кнопки нет.
+  final VoidCallback? onNext;
   final bool saved;
 
   /// true — лайк, false — дизлайк, null — ничего не выбрано.
@@ -42,20 +43,22 @@ class TaskActionBar extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                       child: Padding(
                         padding: const EdgeInsets.only(left: 18),
-                        child: TextButton(
-                          onPressed: onNext,
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 8,
-                            ),
-                          ),
-                          child: const Text(
-                            'ДАЛЬШЕ',
-                            style: OxfordText.nextLabel,
-                          ),
-                        ),
+                        child: onNext == null
+                            ? const SizedBox.shrink()
+                            : TextButton(
+                                onPressed: onNext,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'ДАЛЬШЕ',
+                                  style: OxfordText.nextLabel,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -70,8 +73,9 @@ class TaskActionBar extends StatelessWidget {
                           onPressed: onLike,
                           icon: ThumbIcon(
                             up: true,
+                            filled: liked == true,
                             color: liked == true
-                                ? OxfordColors.active
+                                ? OxfordColors.reaction
                                 : Colors.white,
                           ),
                         ),
@@ -81,8 +85,9 @@ class TaskActionBar extends StatelessWidget {
                           onPressed: onDislike,
                           icon: ThumbIcon(
                             up: false,
+                            filled: liked == false,
                             color: liked == false
-                                ? OxfordColors.active
+                                ? OxfordColors.reaction
                                 : Colors.white,
                           ),
                         ),
@@ -131,10 +136,7 @@ class _BookmarkButton extends StatelessWidget {
               child: AnimatedScale(
                 scale: saved ? 1.08 : 1,
                 duration: const Duration(milliseconds: 160),
-                child: OutlineBookmarkIcon(
-                  filled: saved,
-                  color: saved ? OxfordColors.active : Colors.white,
-                ),
+                child: OutlineBookmarkIcon(filled: saved, color: Colors.white),
               ),
             ),
           ),

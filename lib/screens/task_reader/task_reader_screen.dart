@@ -3,14 +3,26 @@ import 'package:flutter/services.dart';
 import 'package:oxford/data/task_lessons.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 import 'package:oxford/widgets/icons/reader_icons.dart';
+import 'package:oxford/widgets/oxford_dialog.dart';
 import 'package:oxford/widgets/task_reader/task_action_bar.dart';
 import 'package:oxford/widgets/task_reader/task_lesson_view.dart';
 
 /// Экран задания. Листается середина, шапка и нижняя панель остаются.
 class TaskReaderScreen extends StatefulWidget {
-  const TaskReaderScreen({super.key, required this.initialIndex});
+  const TaskReaderScreen({
+    super.key,
+    required this.initialIndex,
+    this.saved = false,
+    this.liked,
+    this.onReaction,
+  });
 
   final int initialIndex;
+  final bool saved;
+  final bool? liked;
+
+  /// Избранное и лайк общие для всех заданий и живут дольше этого экрана.
+  final void Function(bool saved, bool? liked)? onReaction;
 
   @override
   State<TaskReaderScreen> createState() => _TaskReaderScreenState();
@@ -18,7 +30,9 @@ class TaskReaderScreen extends StatefulWidget {
 
 class _TaskReaderScreenState extends State<TaskReaderScreen> {
   late final PageController _pages;
-  late final List<_Reaction> _reactions;
+  late final List<bool> _answerShown;
+  late bool _saved;
+  late bool? _liked;
   int _index = 0;
 
   static const _overlay = SystemUiOverlayStyle(
@@ -33,9 +47,12 @@ class _TaskReaderScreenState extends State<TaskReaderScreen> {
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex.clamp(0, taskLessons.length - 1);
+    final last = readableTaskLessons.length - 1;
+    _index = widget.initialIndex.clamp(0, last);
     _pages = PageController(initialPage: _index);
-    _reactions = List.generate(taskLessons.length, (_) => _Reaction());
+    _answerShown = List.filled(readableTaskLessons.length, false);
+    _saved = widget.saved;
+    _liked = widget.liked;
   }
 
   @override
@@ -45,35 +62,42 @@ class _TaskReaderScreenState extends State<TaskReaderScreen> {
   }
 
   void _next() {
-    if (_index >= taskLessons.length - 1) return;
+    if (_index >= readableTaskLessons.length - 1) return;
     _pages.nextPage(
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeOutCubic,
     );
   }
 
+  void _publish() => widget.onReaction?.call(_saved, _liked);
+
   void _setSaved() {
-    setState(() => _reactions[_index].saved = !_reactions[_index].saved);
+    setState(() => _saved = !_saved);
+    _publish();
   }
 
   void _setLike() {
-    setState(() {
-      final reaction = _reactions[_index];
-      reaction.liked = reaction.liked == true ? null : true;
-    });
+    setState(() => _liked = _liked == true ? null : true);
+    _publish();
   }
 
   void _setDislike() {
-    setState(() {
-      final reaction = _reactions[_index];
-      reaction.liked = reaction.liked == false ? null : false;
-    });
+    setState(() => _liked = _liked == false ? null : false);
+    _publish();
+  }
+
+  Future<void> _revealAnswer(int index) async {
+    final open = await showOxfordChoice(
+      context,
+      title: 'Показать ответ?',
+      message: 'Посмотрите рекламу, чтобы открыть ответ',
+    );
+    if (!open || !mounted) return;
+    setState(() => _answerShown[index] = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    final reaction = _reactions[_index];
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: _overlay,
       child: Scaffold(
@@ -96,10 +120,14 @@ class _TaskReaderScreenState extends State<TaskReaderScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _pages,
-                itemCount: taskLessons.length,
+                itemCount: readableTaskLessons.length,
                 onPageChanged: (index) => setState(() => _index = index),
                 itemBuilder: (context, index) {
-                  return TaskLessonView(lesson: taskLessons[index]);
+                  return TaskLessonView(
+                    lesson: readableTaskLessons[index],
+                    answerShown: _answerShown[index],
+                    onRevealAnswer: () => _revealAnswer(index),
+                  );
                 },
               ),
             ),
@@ -110,9 +138,11 @@ class _TaskReaderScreenState extends State<TaskReaderScreen> {
                 child: ColoredBox(
                   color: OxfordColors.readerBackground,
                   child: TaskActionBar(
-                    onNext: _next,
-                    saved: reaction.saved,
-                    liked: reaction.liked,
+                    onNext: _index >= readableTaskLessons.length - 1
+                        ? null
+                        : _next,
+                    saved: _saved,
+                    liked: _liked,
                     onSaved: _setSaved,
                     onLike: _setLike,
                     onDislike: _setDislike,
@@ -138,9 +168,4 @@ class _BackButton extends StatelessWidget {
       icon: const BackArrowIcon(),
     );
   }
-}
-
-class _Reaction {
-  bool saved = false;
-  bool? liked;
 }

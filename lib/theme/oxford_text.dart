@@ -128,6 +128,44 @@ abstract final class OxfordText {
     height: 1.4,
   );
 
+  static const dialogTitle = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 20,
+    fontWeight: FontWeight.w500,
+    color: OxfordColors.readerTitle,
+    height: 1.25,
+  );
+
+  static const dialogBody = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    color: Color(0xFF3A3A3A),
+    height: 1.35,
+  );
+
+  static const dialogAction = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.6,
+    color: OxfordColors.dialogAction,
+    height: 1.1,
+  );
+
+  static const answerButton = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.2,
+    color: OxfordColors.header,
+    height: 1.1,
+  );
+
   static const nextLabel = TextStyle(
     fontFamily: _family,
     fontFamilyFallback: _fallback,

@@ -31,6 +31,15 @@ abstract final class OxfordColors {
   static const readerGold = Color(0xFF5E3E17);
   static const readerDivider = Color(0xFFE3E3E3);
 
+  /// Лайк на экране задания, как на скрине оригинала.
+  static const reaction = Color(0xFFFF4342);
+
+  /// Плашка «Посмотреть ответ» без затемнения диалогом.
+  static const answerButton = Color(0xFFB7C0D4);
+
+  /// «НЕТ» и «ДА» в модальных окнах.
+  static const dialogAction = Color(0xFF1F4E79);
+
   /// Фон вкладки «Тренажеры»: холоднее сетки заданий.
   static const trainersBackground = Color(0xFFE4E7EE);
   static const trainerTitle = Color(0xFF3E5678);

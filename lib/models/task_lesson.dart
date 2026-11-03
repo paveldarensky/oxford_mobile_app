@@ -16,6 +16,10 @@ class TaskLesson {
     this.sectionTitle,
     this.examples = const [],
     this.paragraphs = const [],
+    this.imageAsset,
+    this.credit,
+    this.lockedAnswer,
+    this.premium = false,
   });
 
   final String headline;
@@ -26,4 +30,16 @@ class TaskLesson {
   final String? sectionTitle;
   final List<LessonExample> examples;
   final List<String> paragraphs;
+
+  /// Фото над текстом. Уезжает вместе со страницей, когда её листают.
+  final String? imageAsset;
+
+  /// Строка под заголовком: автор, художник, дата.
+  final String? credit;
+
+  /// Ответ, который открывается после согласия посмотреть рекламу.
+  final String? lockedAnswer;
+
+  /// Закрыто премиумом: в ленту заданий не попадает.
+  final bool premium;
 }
