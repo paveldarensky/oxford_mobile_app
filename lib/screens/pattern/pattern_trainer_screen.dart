@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:oxford/screens/statistics/statistics_screen.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 import 'package:oxford/theme/oxford_text.dart';
 import 'package:oxford/widgets/icons/reader_icons.dart';
@@ -15,12 +16,14 @@ class PatternResult {
   final DateTime at;
   final int percent;
 
-  /// Строка для экрана статистики: «2026-09-27 13:30:21 80%».
-  String get line {
+  String get stamp {
     String two(int value) => value.toString().padLeft(2, '0');
     return '${at.year}-${two(at.month)}-${two(at.day)} '
-        '${two(at.hour)}:${two(at.minute)}:${two(at.second)} $percent%';
+        '${two(at.hour)}:${two(at.minute)}:${two(at.second)}';
   }
+
+  /// Строка для экрана статистики: «2026-09-27 13:30:21 80%».
+  String get line => '$stamp $percent%';
 }
 
 /// Результаты «Паттерна» за текущий запуск приложения.
@@ -406,13 +409,33 @@ class _ReadyFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(28, 8, 28, 18),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 8, 28, 18),
       child: Row(
         children: [
-          Expanded(child: _ActionButton(label: 'СТАТИСТИКА', wide: true)),
-          SizedBox(width: 18),
-          Expanded(child: _ActionButton(label: 'НАСТРОЙКИ', wide: true)),
+          Expanded(
+            child: _ActionButton(
+              label: 'СТАТИСТИКА',
+              wide: true,
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => StatisticsScreen(
+                      values: [
+                        for (final round in PatternScore.rounds) round.percent,
+                      ],
+                      stamps: [
+                        for (final round in PatternScore.rounds) round.stamp,
+                      ],
+                      percent: true,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 18),
+          const Expanded(child: _ActionButton(label: 'НАСТРОЙКИ', wide: true)),
         ],
       ),
     );

@@ -4,28 +4,47 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oxford/models/attention_rules.dart';
+import 'package:oxford/screens/statistics/statistics_screen.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 import 'package:oxford/theme/oxford_text.dart';
 import 'package:oxford/widgets/icons/asset_icon.dart';
 import 'package:oxford/widgets/icons/reader_icons.dart';
 import 'package:oxford/widgets/icons/tap_hand_icon.dart';
 
+/// Одна сыгранная игра: сколько букв верно и когда открылся результат.
+class AttentionRound {
+  const AttentionRound({required this.at, required this.correct});
+
+  final DateTime at;
+  final int correct;
+
+  String get stamp {
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${at.year}-${two(at.month)}-${two(at.day)} '
+        '${two(at.hour)}:${two(at.minute)}:${two(at.second)}';
+  }
+}
+
 /// Серия результатов тренажёра за текущий запуск приложения.
 class AttentionScore {
-  static final List<int> _rounds = [];
+  static final List<AttentionRound> rounds = [];
 
-  static void add(int correct) => _rounds.add(correct);
-
-  static bool get hasRounds => _rounds.isNotEmpty;
-
-  static int get best => _rounds.reduce((a, b) => a > b ? a : b);
-
-  static int get average {
-    final sum = _rounds.fold<int>(0, (total, score) => total + score);
-    return (sum / _rounds.length).round();
+  static void add(int correct, {DateTime? at}) {
+    rounds.add(AttentionRound(at: at ?? DateTime.now(), correct: correct));
   }
 
-  static void debugClear() => _rounds.clear();
+  static bool get hasRounds => rounds.isNotEmpty;
+
+  static int get best {
+    return rounds.map((round) => round.correct).reduce((a, b) => a > b ? a : b);
+  }
+
+  static int get average {
+    final sum = rounds.fold<int>(0, (total, round) => total + round.correct);
+    return (sum / rounds.length).round();
+  }
+
+  static void debugClear() => rounds.clear();
 }
 
 /// Тренажёр внимания: нажимать буквы, цифры пропускать.
@@ -841,13 +860,33 @@ class _FooterButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(28, 8, 28, 18),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 8, 28, 18),
       child: Row(
         children: [
-          Expanded(child: _NavyButton(label: 'СТАТИСТИКА')),
-          SizedBox(width: 18),
-          Expanded(child: _NavyButton(label: 'НАСТРОЙКИ')),
+          Expanded(
+            child: _NavyButton(
+              label: 'СТАТИСТИКА',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => StatisticsScreen(
+                      values: [
+                        for (final round in AttentionScore.rounds)
+                          round.correct,
+                      ],
+                      stamps: [
+                        for (final round in AttentionScore.rounds) round.stamp,
+                      ],
+                      percent: false,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 18),
+          const Expanded(child: _NavyButton(label: 'НАСТРОЙКИ')),
         ],
       ),
     );

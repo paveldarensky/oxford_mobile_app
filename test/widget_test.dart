@@ -4,6 +4,7 @@ import 'package:oxford/app.dart';
 import 'package:oxford/models/attention_rules.dart';
 import 'package:oxford/screens/attention/attention_trainer_screen.dart';
 import 'package:oxford/screens/pattern/pattern_trainer_screen.dart';
+import 'package:oxford/screens/statistics/statistics_screen.dart';
 import 'package:oxford/theme/oxford_colors.dart';
 
 void main() {
@@ -626,6 +627,122 @@ void main() {
     expect(borderOf('0'), OxfordColors.attentionTimerHot);
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Результаты'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('Statistics chart uses session order and the current scale', () {
+    const size = Size(300, 200);
+    final center = statChartOffset(
+      index: 0,
+      count: 1,
+      value: 6,
+      axisMax: 6,
+      size: size,
+    );
+    expect(center, const Offset(150, 100));
+
+    final first = statChartOffset(
+      index: 0,
+      count: 3,
+      value: 55,
+      axisMax: 100,
+      size: size,
+    );
+    final peak = statChartOffset(
+      index: 1,
+      count: 3,
+      value: 100,
+      axisMax: 100,
+      size: size,
+    );
+    final last = statChartOffset(
+      index: 2,
+      count: 3,
+      value: 0,
+      axisMax: 100,
+      size: size,
+    );
+    expect(peak.dy, lessThan(first.dy));
+    expect(first.dy, lessThan(last.dy));
+    expect(peak.dx, greaterThan(first.dx));
+    expect(last.dx, greaterThan(peak.dx));
+    expect(peak.dy, greaterThan(0));
+    expect(last.dy, lessThan(size.height));
+
+    final six = statChartOffset(
+      index: 0,
+      count: 2,
+      value: 6,
+      axisMax: 11,
+      size: size,
+    );
+    final three = statChartOffset(
+      index: 1,
+      count: 2,
+      value: 3,
+      axisMax: 11,
+      size: size,
+    );
+    expect(six.dy, lessThan(three.dy));
+  });
+
+  testWidgets('Statistics lists pattern and attention sessions', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    PatternScore.debugClear();
+    AttentionScore.debugClear();
+    addTearDown(PatternScore.debugClear);
+    addTearDown(AttentionScore.debugClear);
+
+    PatternScore.add(55, at: DateTime(2026, 9, 27, 13, 28, 24));
+    PatternScore.add(100, at: DateTime(2026, 9, 27, 13, 28, 57));
+    PatternScore.add(0, at: DateTime(2026, 9, 27, 13, 30, 21));
+
+    await tester.pumpWidget(const MaterialApp(home: PatternTrainerScreen()));
+    await tester.tap(find.text('СТАТИСТИКА'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Статистика'), findsOneWidget);
+    expect(find.byKey(const Key('stat-chart')), findsOneWidget);
+    expect(find.text('Лучший результат: 100%'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.text('100%')).style?.fontWeight,
+      FontWeight.w800,
+    );
+    expect(
+      tester.widget<Text>(find.text('0%')).style?.fontWeight,
+      FontWeight.w500,
+    );
+    final newest = tester.getTopLeft(
+      find.byKey(const Key('stat-stamp-2026-09-27 13:30:21')),
+    );
+    final middle = tester.getTopLeft(
+      find.byKey(const Key('stat-stamp-2026-09-27 13:28:57')),
+    );
+    final oldest = tester.getTopLeft(
+      find.byKey(const Key('stat-stamp-2026-09-27 13:28:24')),
+    );
+    expect(newest.dy, lessThan(middle.dy));
+    expect(middle.dy, lessThan(oldest.dy));
+
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+    expect(find.text('Коснитесь, чтобы начать'), findsOneWidget);
+
+    AttentionScore.add(6, at: DateTime(2026, 11, 3, 13, 32, 37));
+    await tester.pumpWidget(const MaterialApp(home: AttentionTrainerScreen()));
+    await tester.tap(find.text('СТАТИСТИКА'));
+    await tester.pumpAndSettle();
+    expect(find.text('Лучший результат: 6'), findsOneWidget);
+    expect(find.text('2026-11-03 13:32:37'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.text('6')).style?.fontWeight,
+      FontWeight.w800,
+    );
     expect(tester.takeException(), isNull);
   });
 }

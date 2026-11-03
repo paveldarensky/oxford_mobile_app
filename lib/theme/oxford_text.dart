@@ -276,6 +276,42 @@ abstract final class OxfordText {
     height: 1.2,
   );
 
+  static const statLabel = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 17,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF3E4C5E),
+    height: 1.2,
+  );
+
+  static const statStamp = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF2C3A4A),
+    height: 1.2,
+  );
+
+  static const statValue = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF1B2E4A),
+    height: 1.1,
+  );
+
+  static const statValueBest = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 16,
+    fontWeight: FontWeight.w800,
+    color: Color(0xFF111111),
+    height: 1.1,
+  );
+
   static const patternStatus = TextStyle(
     fontFamily: _family,
     fontFamilyFallback: _fallback,
