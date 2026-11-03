@@ -9,7 +9,9 @@ import 'package:oxford/widgets/icons/trainer_glyphs.dart';
 
 /// Вкладка «Тренажеры»: фильтры, карточки дня и список упражнений.
 class TrainersScreen extends StatefulWidget {
-  const TrainersScreen({super.key});
+  const TrainersScreen({super.key, required this.onSkills});
+
+  final VoidCallback onSkills;
 
   @override
   State<TrainersScreen> createState() => _TrainersScreenState();
@@ -63,7 +65,8 @@ class _TrainersScreenState extends State<TrainersScreen> {
                     child: _InfoCard(
                       icon: const BarsGlyph(),
                       title: 'Навыки',
-                      subtitle: 'После 5\nтренировок',
+                      subtitle: 'Память,\nвнимание, чтение',
+                      onTap: widget.onSkills,
                     ),
                   ),
                 ],
@@ -135,15 +138,18 @@ class _InfoCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final Widget icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return _Pressable(
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
         child: Row(

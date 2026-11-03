@@ -16,6 +16,8 @@ class AttentionScore {
 
   static void add(int correct) => _rounds.add(correct);
 
+  static bool get hasRounds => _rounds.isNotEmpty;
+
   static int get best => _rounds.reduce((a, b) => a > b ? a : b);
 
   static int get average {

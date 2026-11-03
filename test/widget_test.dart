@@ -352,6 +352,86 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Skills show attention results and open the trainer', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    AttentionScore.debugClear();
+    addTearDown(AttentionScore.debugClear);
+
+    await tester.pumpWidget(const OxfordApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Тренажеры'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Навыки'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Навыки'), findsOneWidget);
+    expect(find.textContaining('средний балл за 30 дней'), findsOneWidget);
+    expect(find.text('Память'), findsOneWidget);
+    expect(find.text('Внимание'), findsOneWidget);
+    expect(find.text('Скорость'), findsOneWidget);
+    expect(find.text('Гибкость'), findsOneWidget);
+    expect(find.text('Мышление'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Чтение'), 200);
+    expect(find.text('Чтение'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('ПОТРЕНИРОВАТЬ: ВНИМАНИЕ'), 200);
+    expect(find.text('ПОТРЕНИРОВАТЬ: ВНИМАНИЕ'), findsOneWidget);
+    expect(find.text('пока нет оценок'), findsNWidgets(6));
+
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Тренировка'), findsOneWidget);
+
+    AttentionScore.add(34);
+    AttentionScore.add(10);
+    await tester.tap(find.text('Навыки'));
+    await tester.pumpAndSettle();
+    expect(find.text('22'), findsOneWidget);
+    expect(find.text('Лучший 34'), findsOneWidget);
+    expect(find.text('средний за 30 дней'), findsOneWidget);
+    expect(find.text('пока нет оценок'), findsNWidgets(5));
+
+    await tester.tap(find.text('Внимание'));
+    await tester.pumpAndSettle();
+    expect(find.text('Тренажер внимания'), findsOneWidget);
+    expect(find.text('Паттерн'), findsOneWidget);
+    expect(find.text('Таблица Шульте'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('ТРЕНИРОВАТЬ'), 200);
+    expect(find.text('ТРЕНИРОВАТЬ'), findsOneWidget);
+
+    await tester.tap(find.text('ТРЕНИРОВАТЬ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Коснитесь, чтобы начать'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+    expect(find.text('ТРЕНИРОВАТЬ'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Тренажер внимания'), 200);
+    await tester.tap(find.text('Тренажер внимания'));
+    await tester.pumpAndSettle();
+    expect(find.text('Коснитесь, чтобы начать'), findsOneWidget);
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('ПОТРЕНИРОВАТЬ: ВНИМАНИЕ'), 200);
+    await tester.tap(find.text('ПОТРЕНИРОВАТЬ: ВНИМАНИЕ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Коснитесь, чтобы начать'), findsOneWidget);
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Назад'));
+    await tester.pumpAndSettle();
+    expect(find.text('Тренажеры'), findsWidgets);
+    expect(find.text('ТРЕНИРОВАТЬ'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Attention countdown and timer reach zero', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

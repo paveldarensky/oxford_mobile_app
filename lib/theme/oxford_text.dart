@@ -194,6 +194,42 @@ abstract final class OxfordText {
     height: 1.25,
   );
 
+  static const skillTitle = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: Color(0xFF1B2E4A),
+    height: 1.15,
+  );
+
+  static const skillScore = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 28,
+    fontWeight: FontWeight.w700,
+    color: Color(0xFF1B2E4A),
+    height: 1,
+  );
+
+  static const skillCaption = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: OxfordColors.trainerSubtitle,
+    height: 1.2,
+  );
+
+  static const skillHint = TextStyle(
+    fontFamily: _family,
+    fontFamilyFallback: _fallback,
+    fontSize: 14.5,
+    fontWeight: FontWeight.w500,
+    color: Color(0xFF2A4A6E),
+    height: 1.35,
+  );
+
   static const trainerChip = TextStyle(
     fontFamily: _family,
     fontFamilyFallback: _fallback,
