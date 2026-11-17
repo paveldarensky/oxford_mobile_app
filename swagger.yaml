@@ -1,0 +1,663 @@
+openapi: 3.0.3
+
+info:
+  title: Oxford API
+  description: |
+    Контракт клиента и сервера для сценария приложения Oxford:
+    ежедневные задания, чтение урока, реакция на урок,
+    каталог тренажёров и сохранение результата тренировки.
+
+    Сервер по этому заданию не реализуется. Приложение показывает
+    те же данные из локальных заглушек. Спецификация описывает,
+    откуда эти данные брались бы по сети и куда уходили бы действия пользователя.
+
+    Где используется каждый запрос:
+    1. GET /daily-tasks — вкладка «Задания»: карточка серии и сетка разделов.
+    2. GET /lessons/{kind} — экран урока после нажатия на карточку.
+    3. PUT /lessons/{kind}/reaction — избранное, лайк и дизлайк внизу урока.
+    4. GET /trainers — вкладка «Тренажеры» и фильтр по навыку.
+    5. POST /trainers/{trainerId}/sessions — конец «Тренажера внимания» или «Паттерна»; ответ заполняет экран «Статистика».
+  version: 1.0.0
+
+servers:
+  - url: https://api.oxford.example/v1
+    description: Проектируемый сервер. Приложение его не вызывает.
+
+tags:
+  - name: DailyTasks
+    description: Задания дня и серия на главном экране
+  - name: Lessons
+    description: Текст урока и реакция пользователя
+  - name: Trainers
+    description: Каталог тренажёров и результаты сессий
+
+paths:
+  /daily-tasks:
+    get:
+      tags: [DailyTasks]
+      summary: Задания на сегодня
+      description: |
+        Открывается вместе с вкладкой «Задания».
+        Ответ собирает карточку серии (дни, рекорд, отметки «Задания» и «Тренажёры»)
+        и девять карточек разделов в том порядке, в котором они стоят на экране.
+      operationId: getDailyTasks
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: День в формате YYYY-MM-DD. Если не передан, сервер берёт текущую дату пользователя.
+          schema:
+            type: string
+            format: date
+            example: "2026-11-17"
+      responses:
+        "200":
+          description: Сетка заданий и прогресс серии
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyBoard"
+              example:
+                date: "2026-11-17"
+                streak:
+                  days: 1
+                  recordDays: 1
+                  tasksDone: true
+                  trainersDone: true
+                tasks:
+                  - kind: tipOfDay
+                    title: Совет дня
+                    highlighted: true
+                    premium: true
+                  - kind: english
+                    title: Английский язык
+                    highlighted: false
+                    premium: false
+                  - kind: vocabulary
+                    title: Словарный запас
+                    highlighted: false
+                    premium: false
+                  - kind: art
+                    title: Искусство
+                    highlighted: false
+                    premium: false
+                  - kind: history
+                    title: История
+                    highlighted: false
+                    premium: false
+                  - kind: science
+                    title: Наука
+                    highlighted: false
+                    premium: false
+                  - kind: puzzles
+                    title: Задачи и головоломки
+                    highlighted: false
+                    premium: false
+                  - kind: books
+                    title: Книги
+                    highlighted: false
+                    premium: false
+                  - kind: poems
+                    title: Стихи
+                    highlighted: false
+                    premium: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /lessons/{kind}:
+    get:
+      tags: [Lessons]
+      summary: Содержимое урока
+      description: |
+        Вызывается, когда пользователь нажимает карточку раздела.
+        Для обычного раздела ответ заполняет экран чтения: заголовок, транскрипцию,
+        перевод, примеры или абзацы.
+        «Совет дня» в приложении не открывает урок, а показывает диалог премиума.
+        Поэтому для kind=tipOfDay сервер отвечает 403, а не телом урока.
+      operationId: getLesson
+      parameters:
+        - $ref: "#/components/parameters/LessonKind"
+      responses:
+        "200":
+          description: Урок, который можно листать
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+              example:
+                kind: english
+                headline: Black sheep
+                speakable: true
+                transcription: "[blæk ʃiːp]"
+                translation: Паршивая овца
+                note: Белая ворона.
+                sectionTitle: Примеры
+                examples:
+                  - original: Every family has a black sheep.
+                    translation: В семье не без урода.
+                  - original: "But I have my role too: black sheep!"
+                    translation: "Но мне тоже назначили свою роль: черная овца."
+                  - original: I'm the black sheep of the family.
+                    translation: Я – белая ворона в семье.
+                paragraphs: []
+                premium: false
+                saved: false
+                liked: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          description: Раздел закрыт премиумом. Клиент показывает диалог подписки и остаётся на сетке заданий.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: premium_required
+                message: Хотите попробовать премиум подписку?
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /lessons/{kind}/reaction:
+    put:
+      tags: [Lessons]
+      summary: Сохранить реакцию на урок
+      description: |
+        Нижняя панель урока: закладка, лайк и дизлайк.
+        Клиент отправляет уже новое состояние целиком, а не отдельное нажатие.
+        Ответ подтверждает то, что сервер запомнил. Эти флаги потом возвращаются
+        в GET /lessons/{kind}, чтобы при повторном открытии кнопки остались нажатыми.
+        Повторная отправка с теми же значениями — обычный успех, не ошибка.
+      operationId: saveLessonReaction
+      parameters:
+        - $ref: "#/components/parameters/LessonKind"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Reaction"
+            example:
+              saved: true
+              liked: true
+      responses:
+        "200":
+          description: Реакция сохранена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reaction"
+              example:
+                saved: true
+                liked: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          description: На премиум-урок нельзя поставить реакцию, пока раздел закрыт.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: premium_required
+                message: Раздел доступен по подписке.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /trainers:
+    get:
+      tags: [Trainers]
+      summary: Список тренажёров
+      description: |
+        Вкладка «Тренажеры». Без параметра skill возвращаются все карточки.
+        Чип фильтра («Внимание», «Память» и другие) передаётся как skill.
+        Пустой список — нормальный ответ 200, а не ошибка: фильтр просто ничего не отобрал.
+        Карточки с premium=true клиент показывает, но не открывает без подписки.
+      operationId: getTrainers
+      parameters:
+        - name: skill
+          in: query
+          required: false
+          description: Навык из фильтра. Без параметра — фильтр «Все».
+          schema:
+            $ref: "#/components/schemas/Skill"
+      responses:
+        "200":
+          description: Карточки тренажёров в порядке каталога
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Trainer"
+              example:
+                - id: attention
+                  title: Тренажер внимания
+                  subtitle: Поиск букв среди цифр. Концентрация. Реакция.
+                  skills: [attention]
+                  premium: false
+                - id: pattern
+                  title: Паттерн
+                  subtitle: Запомнить и воспроизвести паттерн клеток. Память. Внимание.
+                  skills: [memory, attention]
+                  premium: false
+                - id: stroop
+                  title: Задача Струпа
+                  subtitle: Когнитивная гибкость. Мышление. Концентрация внимания.
+                  skills: [thinking, attention, flexibility]
+                  premium: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /trainers/{trainerId}/sessions:
+    post:
+      tags: [Trainers]
+      summary: Сохранить результат тренировки
+      description: |
+        Вызывается, когда сессия тренажёра доиграна до экрана результата.
+        Для «Тренажера внимания» score — число верно нажатых букв.
+        Для «Паттерна» score — процент точности от 0 до 100.
+        Ответ — та же история, которую экран «Статистика» рисует графиком и списком:
+        все сессии, лучший результат и единица измерения.
+        Повторно пройти тренажёр можно сразу: каждая новая сессия добавляется в список.
+      operationId: saveTrainerSession
+      parameters:
+        - $ref: "#/components/parameters/TrainerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionRequest"
+            examples:
+              attention:
+                summary: Тренажер внимания
+                value:
+                  score: 12
+                  finishedAt: "2026-11-17T22:08:00+07:00"
+              pattern:
+                summary: Паттерн
+                value:
+                  score: 80
+                  finishedAt: "2026-11-17T22:14:21+07:00"
+      responses:
+        "200":
+          description: Сессия записана, возвращена обновлённая статистика
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainerStatistics"
+              examples:
+                attention:
+                  summary: Статистика внимания, единица — число букв
+                  value:
+                    trainerId: attention
+                    unit: count
+                    best: 12
+                    sessions:
+                      - score: 12
+                        finishedAt: "2026-11-17T22:08:00+07:00"
+                pattern:
+                  summary: Статистика паттерна, единица — проценты
+                  value:
+                    trainerId: pattern
+                    unit: percent
+                    best: 80
+                    sessions:
+                      - score: 80
+                        finishedAt: "2026-11-17T22:14:21+07:00"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: |
+            Тело разобрано, но результат не подходит этому тренажёру.
+            Например, у «Паттерна» процент больше 100 или score отрицательный.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                code: score_out_of_range
+                message: Для паттерна результат должен быть от 0 до 100.
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  parameters:
+    LessonKind:
+      name: kind
+      in: path
+      required: true
+      description: Раздел ежедневного задания
+      schema:
+        $ref: "#/components/schemas/TaskKind"
+    TrainerId:
+      name: trainerId
+      in: path
+      required: true
+      description: Идентификатор тренажёра из каталога
+      schema:
+        $ref: "#/components/schemas/TrainerId"
+
+  responses:
+    BadRequest:
+      description: |
+        Запрос составлен неверно: неизвестный kind, неизвестный skill,
+        дата не в формате YYYY-MM-DD или в теле нет обязательного поля.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: bad_request
+            message: Неизвестный раздел задания.
+    NotFound:
+      description: Урок или тренажёр с таким идентификатором не существует.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: not_found
+            message: Тренажёр не найден.
+    InternalError:
+      description: Сбой сервера. Клиент может предложить повторить действие.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: internal_error
+            message: Не удалось получить данные. Попробуйте ещё раз.
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Короткий машинный код, по которому клиент выбирает текст или диалог
+          example: not_found
+        message:
+          type: string
+          description: Текст, который можно показать пользователю
+          example: Тренажёр не найден.
+
+    TaskKind:
+      type: string
+      description: Раздел на сетке ежедневных заданий
+      enum:
+        - tipOfDay
+        - english
+        - vocabulary
+        - art
+        - history
+        - science
+        - puzzles
+        - books
+        - poems
+
+    DailyTask:
+      type: object
+      required: [kind, title, highlighted, premium]
+      properties:
+        kind:
+          $ref: "#/components/schemas/TaskKind"
+        title:
+          type: string
+          description: Подпись на карточке
+          example: Английский язык
+        highlighted:
+          type: boolean
+          description: Жёлтая рамка. На экране она у «Совета дня».
+          example: false
+        premium:
+          type: boolean
+          description: true, если нажатие открывает диалог подписки, а не урок
+          example: false
+
+    Streak:
+      type: object
+      required: [days, recordDays, tasksDone, trainersDone]
+      description: Карточка серии над сеткой заданий
+      properties:
+        days:
+          type: integer
+          minimum: 0
+          description: Текущая серия в днях
+          example: 1
+        recordDays:
+          type: integer
+          minimum: 0
+          description: Рекорд серии
+          example: 1
+        tasksDone:
+          type: boolean
+          description: Зелёная точка у подписи «Задания»
+          example: true
+        trainersDone:
+          type: boolean
+          description: Зелёная точка у подписи «Тренажёры»
+          example: true
+
+    DailyBoard:
+      type: object
+      required: [date, streak, tasks]
+      properties:
+        date:
+          type: string
+          format: date
+          example: "2026-11-17"
+        streak:
+          $ref: "#/components/schemas/Streak"
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DailyTask"
+
+    LessonExample:
+      type: object
+      required: [original, translation]
+      properties:
+        original:
+          type: string
+          example: Every family has a black sheep.
+        translation:
+          type: string
+          example: В семье не без урода.
+
+    Lesson:
+      type: object
+      required: [kind, headline, speakable, premium, saved]
+      description: |
+        Экран чтения. У словарных заданий заполнены transcription, translation и examples.
+        У искусства, истории, науки, книг и стихов заполнены paragraphs.
+        У головоломки paragraphs содержат условие, lockedAnswer — ответ после рекламы.
+      properties:
+        kind:
+          $ref: "#/components/schemas/TaskKind"
+        headline:
+          type: string
+          example: Black sheep
+        speakable:
+          type: boolean
+          description: Есть кнопка озвучки, как у английского задания
+          example: true
+        transcription:
+          type: string
+          nullable: true
+          example: "[blæk ʃiːp]"
+        translation:
+          type: string
+          nullable: true
+          example: Паршивая овца
+        note:
+          type: string
+          nullable: true
+          example: Белая ворона.
+        sectionTitle:
+          type: string
+          nullable: true
+          example: Примеры
+        examples:
+          type: array
+          items:
+            $ref: "#/components/schemas/LessonExample"
+        paragraphs:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Фото над текстом. В заглушке приложения это локальный asset.
+        credit:
+          type: string
+          nullable: true
+          description: Автор, художник или дата под заголовком
+          example: Винсент ван Гог, 1888
+        lockedAnswer:
+          type: string
+          nullable: true
+          description: Ответ головоломки, который открывается после рекламы
+        premium:
+          type: boolean
+          example: false
+        saved:
+          type: boolean
+          description: Закладка на нижней панели
+          example: false
+        liked:
+          type: boolean
+          nullable: true
+          description: true — лайк, false — дизлайк, null — ничего не выбрано
+
+    Reaction:
+      type: object
+      required: [saved, liked]
+      properties:
+        saved:
+          type: boolean
+          example: true
+        liked:
+          type: boolean
+          nullable: true
+          description: true — лайк, false — дизлайк, null — снять реакцию
+          example: true
+
+    Skill:
+      type: string
+      description: Навык в фильтре тренажёров и на экране «Навыки»
+      enum:
+        - memory
+        - attention
+        - thinking
+        - speed
+        - flexibility
+        - reading
+
+    TrainerId:
+      type: string
+      description: Стабильный идентификатор карточки. На экране пользователь видит title.
+      enum:
+        - attention
+        - pattern
+        - stroop
+        - focus
+        - schulte
+        - words
+        - math
+        - nback
+        - reading
+        - reaction
+        - rules
+
+    Trainer:
+      type: object
+      required: [id, title, subtitle, skills, premium]
+      properties:
+        id:
+          $ref: "#/components/schemas/TrainerId"
+        title:
+          type: string
+          example: Тренажер внимания
+        subtitle:
+          type: string
+          example: Поиск букв среди цифр. Концентрация. Реакция.
+        skills:
+          type: array
+          items:
+            $ref: "#/components/schemas/Skill"
+        premium:
+          type: boolean
+          example: false
+
+    SessionRequest:
+      type: object
+      required: [score, finishedAt]
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          description: |
+            Число верных букв для внимания.
+            Процент от 0 до 100 для паттерна.
+          example: 12
+        finishedAt:
+          type: string
+          format: date-time
+          description: Момент, который на статистике показывается как метка сессии
+          example: "2026-11-17T22:08:00+07:00"
+
+    Session:
+      type: object
+      required: [score, finishedAt]
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          example: 12
+        finishedAt:
+          type: string
+          format: date-time
+          example: "2026-11-17T22:08:00+07:00"
+
+    ScoreUnit:
+      type: string
+      description: |
+        Как подписывать ось графика и строки статистики.
+        count — «12», percent — «80%».
+      enum:
+        - count
+        - percent
+
+    TrainerStatistics:
+      type: object
+      required: [trainerId, unit, best, sessions]
+      description: Данные экрана «Статистика» после сохранённой сессии
+      properties:
+        trainerId:
+          $ref: "#/components/schemas/TrainerId"
+        unit:
+          $ref: "#/components/schemas/ScoreUnit"
+        best:
+          type: integer
+          minimum: 0
+          description: Лучший результат среди sessions. На экране строка «Лучший результат».
+          example: 12
+        sessions:
+          type: array
+          description: Хронологический порядок. На графике первая сессия слева.
+          items:
+            $ref: "#/components/schemas/Session"
